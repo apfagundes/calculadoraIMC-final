@@ -1,0 +1,189 @@
+import 'package:flutter/material.dart';
+
+void main() => runApp(MyApp());
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(home: IMCCalculatorPage());
+  }
+}
+
+class IMCCalculatorPage extends StatefulWidget {
+  @override
+  _IMCCalculatorPageState createState() => _IMCCalculatorPageState();
+}
+
+class _IMCCalculatorPageState extends State<IMCCalculatorPage> {
+  final TextEditingController _pesoController = TextEditingController();
+  final TextEditingController _alturaController = TextEditingController();
+  String _activeField = 'peso';
+  String _imcResult = '';
+
+  void _onButtonPressed(String value) {
+    final controller = _activeField == 'peso' ? _pesoController : _alturaController;
+    if (value == '.' && controller.text.contains('.') || controller.text.length >= 5) return;
+
+    setState(() => controller.text += value);
+  }
+
+  void _onFieldFocus(String field) => setState(() => _activeField = field);
+
+  void _calculateIMC() {
+    final peso = double.tryParse(_pesoController.text);
+    final altura = double.tryParse(_alturaController.text);
+
+    if (peso == null || peso <= 0) {
+      _imcResult = 'Peso inválido. Insira um valor maior que zero.';
+    } else if (altura == null || altura <= 0) {
+      _imcResult = 'Altura inválida. Insira um valor maior que zero.';
+    } else {
+      final imc = peso / (altura * altura);
+      _imcResult = 'Seu IMC: ${imc.toStringAsFixed(2)} - ${_classificarIMC(imc)}';
+    }
+    setState(() {});
+  }
+
+  String _classificarIMC(double imc) {
+    if (imc < 16) return 'Magreza grau III';
+    if (imc < 17) return 'Magreza grau II';
+    if (imc < 18.5) return 'Magreza grau I';
+    if (imc < 25) return 'Eutrofia';
+    if (imc < 30) return 'Pré-obesidade';
+    if (imc < 35) return 'Obesidade grau I';
+    if (imc < 40) return 'Obesidade grau II';
+    return 'Obesidade grau III';
+  }
+
+  void _clearInputs() {
+    setState(() {
+      _pesoController.clear();
+      _alturaController.clear();
+      _imcResult = '';
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double margin = screenWidth * 0.01;
+
+    return Scaffold(
+      backgroundColor: Colors.grey[200],
+      appBar: AppBar(
+        title: Text('Calculadora IMC'),
+        backgroundColor: Color(0xff9284ff),
+        centerTitle: true,
+      ),
+      body: Center(
+        child: Container(
+          margin: EdgeInsets.symmetric(horizontal: margin),
+          padding: EdgeInsets.all(16),
+          decoration: _containerDecoration(),
+          child: Column(
+            children: [
+              _buildImage(),
+              _buildTextField(_pesoController, 'Peso (kg)', 'peso'),
+              _buildTextField(_alturaController, 'Altura (m)', 'altura', isLast: true),
+              _buildGrid(),
+              _buildResult(),
+              _buildClearButton(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImage() => Padding(
+    padding: const EdgeInsets.all(16),
+    child: FractionallySizedBox(
+      widthFactor: 0.5,
+      child: Image.network(
+        'https://cdn.rcn67.com.br/upload/dn_noticia/2019/08/104620698-prmo-imc-br-nc.png',
+        height: 170,
+        fit: BoxFit.cover,
+      ),
+    ),
+  );
+
+  Widget _buildTextField(TextEditingController controller, String labelText, String field, {bool isLast = false}) {
+    return Padding(
+      padding: EdgeInsets.only(left: 16, right: 16, top: 16, bottom: isLast ? 16 : 0),
+      child: FractionallySizedBox(
+        widthFactor: 0.5,
+        child: TextField(
+          controller: controller,
+          decoration: InputDecoration(labelText: labelText),
+          readOnly: true,
+          onTap: () => _onFieldFocus(field),
+        ),
+      ),
+    );
+  }
+
+  Expanded _buildGrid() => Expanded(
+    child: FractionallySizedBox(
+      widthFactor: 0.5,
+      child: GridView.count(
+        crossAxisCount: 3,
+        padding: EdgeInsets.all(2),
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        children: List.generate(12, (index) {
+          if (index < 9) return _buildButton('${index + 1}');
+          if (index == 9) return _buildButton('.');
+          if (index == 10) return _buildButton('0');
+          return _buildButton('↲', action: _calculateIMC, color: Color(0xff9284ff));
+        }),
+      ),
+    ),
+  );
+
+  ElevatedButton _buildButton(String label, {Function()? action, Color? color}) {
+    return ElevatedButton(
+      onPressed: action ?? () => _onButtonPressed(label),
+      child: Text(label),
+      style: ElevatedButton.styleFrom(
+        padding: EdgeInsets.all(8),
+        textStyle: TextStyle(fontSize: 18),
+        backgroundColor: color,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+
+  Padding _buildResult() => Padding(
+    padding: const EdgeInsets.all(16),
+    child: Text(
+      _imcResult,
+      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+    ),
+  );
+
+  Padding _buildClearButton() => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+    child: ElevatedButton(
+      onPressed: _clearInputs,
+      child: Text('Limpar'),
+      style: ElevatedButton.styleFrom(
+        padding: EdgeInsets.all(20),
+        textStyle: TextStyle(fontSize: 18),
+        backgroundColor: Colors.redAccent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    ),
+  );
+
+  BoxDecoration _containerDecoration() => BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(16),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black26,
+        blurRadius: 8,
+        offset: Offset(0, 2),
+      ),
+    ],
+  );
+}
